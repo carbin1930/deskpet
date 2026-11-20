@@ -58,17 +58,22 @@ if (Test-Path $dist) {
 Push-Location $root
 try {
   # --no-bundle: embed frontend, skip MSI/NSIS installer tooling.
-  # Retry a few times: Defender can transiently lock a freshly generated
-  # build-script exe (os error 5). Each retry reuses the cargo cache.
+  # Retry: Defender can lock fresh build-script exe (os error 5) or delete
+  # dlltool's temp *.dll_imports.lib (os error 2). Each retry reuses the cache.
   $ok = $false
   for ($i = 1; $i -le 10; $i++) {
     Write-Host "=== Build attempt $i / 10 ==="
     npm run tauri -- build --no-bundle
     if ($LASTEXITCODE -eq 0) { $ok = $true; break }
-    Write-Host "Build attempt $i failed (exit $LASTEXITCODE); retrying in 2s..."
-    Start-Sleep -Seconds 2
+    Write-Host "Build attempt $i failed (exit $LASTEXITCODE); retrying in 5s..."
+    Start-Sleep -Seconds 5
   }
   if (-not $ok) {
+    Write-Host ""
+    Write-Host "Build still failing after 10 attempts."
+    Write-Host "If you see 'os error 5' or '*.dll_imports.lib ... not found', run once:"
+    Write-Host "  powershell -ExecutionPolicy Bypass -File scripts\exclude-defender.ps1"
+    Write-Host "then retry this build."
     Write-Error "tauri build failed after 10 attempts"
     exit 1
   }
