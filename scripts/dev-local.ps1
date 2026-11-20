@@ -12,7 +12,10 @@
 #
 # Press Ctrl+C to stop.
 
-$ErrorActionPreference = "Stop"
+# Keep "Continue": cargo writes normal progress (Compiling ...) to stderr,
+# and PowerShell 5.1 would treat that as a NativeCommandError under "Stop".
+# We check $LASTEXITCODE explicitly and still use throw for real failures.
+$ErrorActionPreference = "Continue"
 
 $root = Split-Path -Parent $PSScriptRoot
 $tools = Join-Path $root ".tools"
