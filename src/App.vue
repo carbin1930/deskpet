@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import Pet from './components/Pet.vue'
 import MetricPanel from './components/MetricPanel.vue'
 import { useStats } from './composables/useStats'
@@ -18,6 +19,8 @@ const menuPos = ref({ x: 0, y: 0 })
 /** 停靠但未展开 = 探头小窗（窗口视口 118x118）。 */
 const peeking = computed(() => docked.value !== null && !expanded.value)
 
+let unlistenDetached: (() => void) | null = null
+
 onMounted(async () => {
   try {
     const edge = await invoke<Edge | null>('is_docked')
@@ -27,7 +30,19 @@ onMounted(async () => {
   } catch (e) {
     console.error('is_docked failed', e)
   }
+  // 用户把探头小窗拖离边缘后，Rust 端已恢复完整尺寸，这里同步 UI 状态。
+  try {
+    unlistenDetached = await listen('dock://detached', () => {
+      docked.value = null
+      expanded.value = false
+      menuOpen.value = false
+    })
+  } catch (e) {
+    console.error('listen detached failed', e)
+  }
 })
+
+onUnmounted(() => unlistenDetached?.())
 
 function openMenu(e: MouseEvent) {
   e.preventDefault()
@@ -124,6 +139,27 @@ function onRootClick() {
       <MetricPanel :stats="stats" />
     </div>
 
+    <!-- 探头态：两只前爪扒在边缘上，交替抓挠 -->
+    <div v-if="peeking" class="peek-edge" aria-hidden="true">
+      <div class="edge-bar"></div>
+      <svg class="paw paw-left" viewBox="0 0 48 30">
+        <rect x="16" y="12" width="16" height="18" rx="6" fill="#d9a54a" />
+        <ellipse cx="24" cy="17" rx="13" ry="10" fill="#f7e9c9" />
+        <circle cx="13" cy="10" r="4.5" fill="#f7e9c9" />
+        <circle cx="24" cy="7" r="5" fill="#f7e9c9" />
+        <circle cx="35" cy="10" r="4.5" fill="#f7e9c9" />
+        <ellipse cx="24" cy="19" rx="5" ry="4" fill="#e8899a" opacity=".85" />
+      </svg>
+      <svg class="paw paw-right" viewBox="0 0 48 30">
+        <rect x="16" y="12" width="16" height="18" rx="6" fill="#d9a54a" />
+        <ellipse cx="24" cy="17" rx="13" ry="10" fill="#f7e9c9" />
+        <circle cx="13" cy="10" r="4.5" fill="#f7e9c9" />
+        <circle cx="24" cy="7" r="5" fill="#f7e9c9" />
+        <circle cx="35" cy="10" r="4.5" fill="#f7e9c9" />
+        <ellipse cx="24" cy="19" rx="5" ry="4" fill="#e8899a" opacity=".85" />
+      </svg>
+    </div>
+
     <div
       v-if="menuOpen"
       class="ctx-menu"
@@ -194,10 +230,46 @@ body {
   justify-content: center;
   overflow: hidden;
 }
-/* 把 170 的宠物放大并上移，让头/耳朵填满探头小窗 */
+/* 把 170 的宠物放大并上移，让头/耳朵填满探头小窗，身体下缘留给扒边爪子 */
 .pet-window.peeking .pet {
-  transform: translateY(-30px) scale(1.18);
+  transform: translateY(-26px) scale(1.12);
   transform-origin: center top;
+}
+
+/* 探头态扒边：底部一条屏幕边缘，两只前爪搭在上面交替抓挠 */
+.peek-edge {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.peek-edge .edge-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18px;
+  background: linear-gradient(180deg, rgba(120, 134, 156, 0.9), rgba(70, 82, 100, 0.95));
+  border-top: 2px solid rgba(203, 213, 225, 0.55);
+  box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.25);
+}
+.peek-edge .paw {
+  position: absolute;
+  bottom: 12px;
+  width: 38px;
+  height: 24px;
+}
+.peek-edge .paw-left {
+  left: 20px;
+  animation: paw-climb 1.1s ease-in-out infinite;
+}
+.peek-edge .paw-right {
+  right: 20px;
+  animation: paw-climb 1.1s ease-in-out infinite 0.55s;
+}
+@keyframes paw-climb {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(5px) rotate(4deg); }
 }
 
 /* 自定义右键菜单，替代 WebView 原生菜单 */

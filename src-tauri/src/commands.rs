@@ -1,6 +1,6 @@
 use crate::model::SystemStats;
 use crate::state::{AppState, DockEdge};
-use tauri::{Manager, PhysicalPosition, PhysicalSize, State};
+use tauri::{Emitter, Manager, PhysicalPosition, PhysicalSize, State};
 
 /// 首屏立即取一次快照，避免等定时推送。
 #[tauri::command]
@@ -56,22 +56,6 @@ pub fn dock(app: tauri::AppHandle, edge: String, state: State<'_, AppState>) -> 
     let pos = win.outer_position().map_err(|e| e.to_string())?;
     let size = win.inner_size().map_err(|e| e.to_string())?;
 
-    let mut dock_state = state.dock.lock().unwrap();
-
-    // 若已停靠，保留原始位置/尺寸与工作区；仅首次停靠时记录。
-    // 换屏幕重新停靠时，工作区与缩放必须刷新为当前屏幕，否则会用到旧屏幕坐标。
-    if dock_state.edge.is_none() {
-        dock_state.saved_pos = Some((pos.x, pos.y));
-        dock_state.saved_size = Some((size.width, size.height));
-    }
-    dock_state.work = Some((
-        work.position.x,
-        work.position.y,
-        work.size.width,
-        work.size.height,
-    ));
-    dock_state.scale = scale;
-
     let (dw, dh) = dock_size(scale);
     let (x, y) = edge_position(
         edge,
@@ -83,13 +67,30 @@ pub fn dock(app: tauri::AppHandle, edge: String, state: State<'_, AppState>) -> 
         dh as i32,
     );
 
+    {
+        let mut dock_state = state.dock.lock().unwrap();
+        // 若已停靠，保留原始位置/尺寸与工作区；仅首次停靠时记录。
+        // 换屏幕重新停靠时，工作区与缩放必须刷新为当前屏幕，否则会用到旧屏幕坐标。
+        if dock_state.edge.is_none() {
+            dock_state.saved_pos = Some((pos.x, pos.y));
+            dock_state.saved_size = Some((size.width, size.height));
+        }
+        dock_state.work = Some((
+            work.position.x,
+            work.position.y,
+            work.size.width,
+            work.size.height,
+        ));
+        dock_state.scale = scale;
+        dock_state.expected_pos = Some((x, y));
+        dock_state.edge = Some(edge);
+        dock_state.expanded = false;
+    } // 提前释放锁，避免 set_position 触发的 Moved 事件回调重入死锁
+
     win.set_size(PhysicalSize::new(dw, dh))
         .map_err(|e| e.to_string())?;
     win.set_position(PhysicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
-
-    dock_state.edge = Some(edge);
-    dock_state.expanded = false;
     Ok(())
 }
 
@@ -98,20 +99,26 @@ pub fn dock(app: tauri::AppHandle, edge: String, state: State<'_, AppState>) -> 
 /// 双屏下窗口贴边后中心点会落到相邻屏幕，重新判定会导致位置错乱 / 窗口消失。
 #[tauri::command]
 pub fn expand_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    let dock_state = state.dock.lock().unwrap();
-    let edge = match dock_state.edge {
-        Some(e) => e,
-        None => return Ok(()),
+    let (saved_w, saved_h, wx, wy, ww, wh, edge) = {
+        let dock_state = state.dock.lock().unwrap();
+        let edge = match dock_state.edge {
+            Some(e) => e,
+            None => return Ok(()),
+        };
+        if dock_state.expanded {
+            return Ok(());
+        }
+        let size = dock_state.saved_size.ok_or("no saved size")?;
+        let work = dock_state.work.ok_or("no cached work area")?;
+        (size.0, size.1, work.0, work.1, work.2, work.3, edge)
     };
-    if dock_state.expanded {
-        return Ok(());
-    }
-    let (saved_w, saved_h) = dock_state.saved_size.ok_or("no saved size")?;
-    let (wx, wy, ww, wh) = dock_state.work.ok_or("no cached work area")?;
-    drop(dock_state);
 
     let win = app.get_webview_window("main").ok_or("main window not found")?;
     let (x, y) = edge_position(edge, wx, wy, ww, wh, saved_w as i32, saved_h as i32);
+    {
+        let mut dock_state = state.dock.lock().unwrap();
+        dock_state.expected_pos = Some((x, y));
+    }
     win.set_size(PhysicalSize::new(saved_w, saved_h))
         .map_err(|e| e.to_string())?;
     win.set_position(PhysicalPosition::new(x, y))
@@ -125,21 +132,26 @@ pub fn expand_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<
 /// 鼠标移出：把展开的窗口缩回小方块、贴住边缘。同样复用缓存工作区。
 #[tauri::command]
 pub fn collapse_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    let dock_state = state.dock.lock().unwrap();
-    let edge = match dock_state.edge {
-        Some(e) => e,
-        None => return Ok(()),
+    let (wx, wy, ww, wh, scale, edge) = {
+        let dock_state = state.dock.lock().unwrap();
+        let edge = match dock_state.edge {
+            Some(e) => e,
+            None => return Ok(()),
+        };
+        if !dock_state.expanded {
+            return Ok(());
+        }
+        let work = dock_state.work.ok_or("no cached work area")?;
+        (work.0, work.1, work.2, work.3, dock_state.scale, edge)
     };
-    if !dock_state.expanded {
-        return Ok(());
-    }
-    let (wx, wy, ww, wh) = dock_state.work.ok_or("no cached work area")?;
-    let scale = dock_state.scale;
-    drop(dock_state);
 
     let win = app.get_webview_window("main").ok_or("main window not found")?;
     let (dw, dh) = dock_size(scale);
     let (x, y) = edge_position(edge, wx, wy, ww, wh, dw as i32, dh as i32);
+    {
+        let mut dock_state = state.dock.lock().unwrap();
+        dock_state.expected_pos = Some((x, y));
+    }
     win.set_size(PhysicalSize::new(dw, dh))
         .map_err(|e| e.to_string())?;
     win.set_position(PhysicalPosition::new(x, y))
@@ -154,21 +166,54 @@ pub fn collapse_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Resul
 #[tauri::command]
 pub fn undock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let win = app.get_webview_window("main").ok_or("main window not found")?;
-    let mut dock_state = state.dock.lock().unwrap();
-    if let Some((w, h)) = dock_state.saved_size {
+    let (size, pos) = {
+        let mut dock_state = state.dock.lock().unwrap();
+        let result = (dock_state.saved_size, dock_state.saved_pos);
+        dock_state.edge = None;
+        dock_state.expanded = false;
+        dock_state.saved_pos = None;
+        dock_state.saved_size = None;
+        dock_state.work = None;
+        dock_state.expected_pos = None;
+        result
+    };
+    if let Some((w, h)) = size {
         win.set_size(PhysicalSize::new(w, h))
             .map_err(|e| e.to_string())?;
     }
-    if let Some((x, y)) = dock_state.saved_pos {
+    if let Some((x, y)) = pos {
         win.set_position(PhysicalPosition::new(x, y))
             .map_err(|e| e.to_string())?;
     }
-    dock_state.edge = None;
-    dock_state.expanded = false;
-    dock_state.saved_pos = None;
-    dock_state.saved_size = None;
-    dock_state.work = None;
     Ok(())
+}
+
+/// 用户把停靠的小窗拖离边缘：恢复完整尺寸、保留拖动后的位置（不弹回）、
+/// 清除停靠状态并通知前端同步 UI。由窗口 Moved 事件在检测到偏离时调用。
+pub fn detach_by_drag(app: &tauri::AppHandle, state: &AppState) {
+    let win = match app.get_webview_window("main") {
+        Some(w) => w,
+        None => return,
+    };
+    let size = {
+        let mut dock_state = state.dock.lock().unwrap();
+        if dock_state.edge.is_none() {
+            return;
+        }
+        let size = dock_state.saved_size;
+        dock_state.edge = None;
+        dock_state.expanded = false;
+        dock_state.saved_pos = None;
+        dock_state.saved_size = None;
+        dock_state.work = None;
+        dock_state.expected_pos = None;
+        size
+    };
+    // 只恢复尺寸，不再 set_position —— 让窗口留在用户拖到的位置。
+    if let Some((w, h)) = size {
+        let _ = win.set_size(PhysicalSize::new(w, h));
+    }
+    let _ = app.emit("dock://detached", ());
 }
 
 /// 查询当前停靠状态，返回边缘名或 null。

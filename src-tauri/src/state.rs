@@ -26,6 +26,10 @@ pub struct DockState {
     pub work: Option<(i32, i32, u32, u32)>,
     /// 停靠目标屏幕的缩放因子。
     pub scale: f64,
+    /// 最近一次程序主动 set_position 的目标位置（物理像素）。
+    /// 窗口 Moved 事件里用它区分「程序移动」与「用户拖拽」：
+    /// 实际位置明显偏离此值即判定为用户把宠物拖离边缘。
+    pub expected_pos: Option<(i32, i32)>,
 }
 
 /// 全局共享状态：采集器被首屏命令与后台定时器共用，需串行访问。

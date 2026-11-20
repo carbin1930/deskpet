@@ -99,6 +99,26 @@ pub fn run() {
                 api.prevent_close();
                 let _ = window.hide();
             }
+            // 停靠态下，若窗口位置明显偏离程序设定的位置，视为用户拖拽离开边缘：
+            // 恢复完整尺寸并留在拖拽处。程序自身的 dock/expand/collapse 移动因位置
+            // 与 expected_pos 一致，不会被误判。
+            if let tauri::WindowEvent::Moved(pos) = event {
+                let app = window.app_handle().clone();
+                let detach = {
+                    let state = app.state::<AppState>();
+                    let ds = state.dock.lock().unwrap();
+                    match ds.expected_pos {
+                        Some((ex, ey)) if ds.edge.is_some() => {
+                            (pos.x - ex).abs() > 16 || (pos.y - ey).abs() > 16
+                        }
+                        _ => false,
+                    }
+                };
+                if detach {
+                    let state = app.state::<AppState>();
+                    commands::detach_by_drag(&app, &state);
+                }
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running deskpet");
