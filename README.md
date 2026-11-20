@@ -48,11 +48,19 @@ npm run tauri dev                   # 开发模式，热更新（首次会编译
 npm run tauri -- build --no-bundle  # 生成独立 exe，跳过安装包
 ```
 
-产物位于 `src-tauri/target/release/deskpet.exe`。本机若没有 VS Build Tools，可用随仓库附带的 GNU 工具链脚本：
+产物位于 `src-tauri/target/release/deskpet.exe`。
+
+**本机一键脚本（无 VS Build Tools 时）**：仓库在 `.tools/` 附带了 GNU 工具链，但它是 gitignore 的、且不会自动进 PATH。若直接跑 `cargo check` / `tauri dev` 报 `dlltool.exe: program not found`，用这两个脚本即可（自动配 PATH + linker，并规避 Defender 锁文件）：
 
 ```bash
+# 开发运行：热更新 + 弹出宠物窗口（Ctrl+C 退出）
+powershell -ExecutionPolicy Bypass -File scripts\dev-local.ps1
+
+# 生成独立 exe
 powershell -ExecutionPolicy Bypass -File scripts\build-local.ps1
 ```
+
+> `.tools/` 为本地工具链，换电脑后需重新准备（见 `scripts/build-local.ps1` 顶部注释）。有 VS Build Tools 的机器可忽略这些脚本，直接用标准命令。
 
 仅验证前端：
 
@@ -116,11 +124,19 @@ npm run tauri dev                   # dev with hot reload (first run compiles Ru
 npm run tauri -- build --no-bundle  # standalone exe, skip installer
 ```
 
-The exe lands at `src-tauri/target/release/deskpet.exe`. Without VS Build Tools, use the bundled GNU toolchain script:
+The exe lands at `src-tauri/target/release/deskpet.exe`.
+
+**One-click scripts for this machine (no VS Build Tools)**: the repo ships a GNU toolchain in `.tools/`, but it is gitignored and not auto-added to PATH. If a plain `cargo check` / `tauri dev` fails with `dlltool.exe: program not found`, use these scripts (they set PATH + linker and work around Defender file locks):
 
 ```bash
+# Dev run: hot reload + pet window (Ctrl+C to stop)
+powershell -ExecutionPolicy Bypass -File scripts\dev-local.ps1
+
+# Build standalone exe
 powershell -ExecutionPolicy Bypass -File scripts\build-local.ps1
 ```
+
+> `.tools/` is a local toolchain; it must be re-prepared on a new machine (see the header of `scripts/build-local.ps1`). Machines with VS Build Tools can ignore these scripts and use the standard commands.
 
 Frontend-only validation:
 
