@@ -1,0 +1,10 @@
+{
+  "id": "cat-default",
+  "name": "默认小猫",
+  "version": 1,
+  "animations": {
+    "idle": { "src": "/packs/default/idle.svg", "type": "svg", "loop": true },
+    "busy": { "src": "/packs/default/busy.svg", "type": "svg", "loop": true },
+    "alert": { "src": "/packs/default/alert.svg", "type": "svg", "loop": true }
+  }
+}
