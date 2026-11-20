@@ -1,6 +1,6 @@
 use crate::model::SystemStats;
 use crate::state::{AppState, DockEdge};
-use tauri::{Manager, PhysicalPosition, State};
+use tauri::{Manager, PhysicalPosition, PhysicalSize, State};
 
 /// 首屏立即取一次快照，避免等定时推送。
 #[tauri::command]
@@ -9,50 +9,37 @@ pub fn get_stats(state: State<'_, AppState>) -> SystemStats {
     monitor.sample()
 }
 
-/// 停靠后露出的边缘宽度（逻辑像素），鼠标悬停时展开。
-const PEEK_LOGICAL: f64 = 54.0;
+/// 停靠态窗口尺寸（逻辑像素）：只留宠物探头的小方块，贴在工作区边缘。
+const DOCK_W_LOGICAL: f64 = 118.0;
+const DOCK_H_LOGICAL: f64 = 118.0;
 
-/// 计算停靠态下窗口应处的物理坐标。
-/// 停靠 = 窗口主体移出工作区，只在对应边缘露出 PEEK 宽度。
-fn docked_position(
-    edge: DockEdge,
-    win_x: i32,
-    win_y: i32,
-    win_w: u32,
-    win_h: u32,
-    work_x: i32,
-    work_y: i32,
-    work_w: u32,
-    _work_h: u32,
-    peek: i32,
-) -> (i32, i32) {
-    match edge {
-        DockEdge::Left => (work_x - (win_w as i32 - peek), win_y),
-        DockEdge::Right => (work_x + work_w as i32 - peek, win_y),
-        DockEdge::Top => (win_x, work_y - (win_h as i32 - peek)),
-    }
+fn dock_size(scale: f64) -> (u32, u32) {
+    (
+        (DOCK_W_LOGICAL * scale).round() as u32,
+        (DOCK_H_LOGICAL * scale).round() as u32,
+    )
 }
 
-/// 计算悬停展开时窗口应处的物理坐标（整窗滑入工作区）。
-fn expanded_position(
+/// 计算停靠/展开时窗口应处的物理坐标。
+/// 两种状态都把窗口整体放进工作区、贴住对应边缘，只是尺寸不同。
+fn edge_position(
     edge: DockEdge,
-    win_x: i32,
-    win_y: i32,
-    win_w: u32,
-    _win_h: u32,
     work_x: i32,
     work_y: i32,
     work_w: u32,
-    _work_h: u32,
+    work_h: u32,
+    win_w: i32,
+    win_h: i32,
 ) -> (i32, i32) {
     match edge {
-        DockEdge::Left => (work_x, win_y),
-        DockEdge::Right => (work_x + work_w as i32 - win_w as i32, win_y),
-        DockEdge::Top => (win_x, work_y),
+        DockEdge::Left => (work_x, work_y + (work_h as i32 - win_h) / 2),
+        DockEdge::Right => (work_x + work_w as i32 - win_w, work_y + (work_h as i32 - win_h) / 2),
+        DockEdge::Top => (work_x + (work_w as i32 - win_w) / 2, work_y),
     }
 }
 
 /// 把宠物停靠到屏幕边缘：左 / 右 / 上。
+/// 停靠态把窗口缩成小方块贴在边缘（宠物探头可见），悬停再展开。
 #[tauri::command]
 pub fn dock(app: tauri::AppHandle, edge: String, state: State<'_, AppState>) -> Result<(), String> {
     let edge = match edge.as_str() {
@@ -65,36 +52,32 @@ pub fn dock(app: tauri::AppHandle, edge: String, state: State<'_, AppState>) -> 
     let monitor = win.current_monitor().ok().flatten().ok_or("no monitor found")?;
     let work = monitor.work_area();
     let scale = monitor.scale_factor();
-    let peek = (PEEK_LOGICAL * scale).round() as i32;
 
     let pos = win.outer_position().map_err(|e| e.to_string())?;
     let size = win.inner_size().map_err(|e| e.to_string())?;
 
     let mut dock_state = state.dock.lock().unwrap();
 
-    // 若已停靠， retains 原始位置/尺寸；仅首次停靠时记录。
+    // 若已停靠，保留原始位置/尺寸；仅首次停靠时记录。
+    // 若已是停靠态，用保存的原始尺寸作为展开基准，避免层层缩小。
     if dock_state.edge.is_none() {
         dock_state.saved_pos = Some((pos.x, pos.y));
         dock_state.saved_size = Some((size.width, size.height));
     }
 
-    // 用当前（或还原后）的尺寸计算停靠坐标。
-    let (cur_x, cur_y) = dock_state.saved_pos.unwrap_or((pos.x, pos.y));
-    let (cur_w, cur_h) = dock_state.saved_size.unwrap_or((size.width, size.height));
-
-    let (x, y) = docked_position(
+    let (dw, dh) = dock_size(scale);
+    let (x, y) = edge_position(
         edge,
-        cur_x,
-        cur_y,
-        cur_w,
-        cur_h,
         work.position.x,
         work.position.y,
         work.size.width,
         work.size.height,
-        peek,
+        dw as i32,
+        dh as i32,
     );
 
+    win.set_size(PhysicalSize::new(dw, dh))
+        .map_err(|e| e.to_string())?;
     win.set_position(PhysicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
 
@@ -103,7 +86,7 @@ pub fn dock(app: tauri::AppHandle, edge: String, state: State<'_, AppState>) -> 
     Ok(())
 }
 
-/// 悬停展开：把停靠的窗口整窗滑入工作区。
+/// 悬停展开：把停靠的小窗口恢复成完整尺寸，贴住边缘。
 #[tauri::command]
 pub fn expand_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let dock_state = state.dock.lock().unwrap();
@@ -114,24 +97,23 @@ pub fn expand_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<
     if dock_state.expanded {
         return Ok(());
     }
-    let (saved_x, saved_y) = dock_state.saved_pos.ok_or("no saved position")?;
     let (saved_w, saved_h) = dock_state.saved_size.ok_or("no saved size")?;
     drop(dock_state);
 
     let win = app.get_webview_window("main").ok_or("main window not found")?;
     let monitor = win.current_monitor().ok().flatten().ok_or("no monitor found")?;
     let work = monitor.work_area();
-    let (x, y) = expanded_position(
+    let (x, y) = edge_position(
         edge,
-        saved_x,
-        saved_y,
-        saved_w,
-        saved_h,
         work.position.x,
         work.position.y,
         work.size.width,
         work.size.height,
+        saved_w as i32,
+        saved_h as i32,
     );
+    win.set_size(PhysicalSize::new(saved_w, saved_h))
+        .map_err(|e| e.to_string())?;
     win.set_position(PhysicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
 
@@ -140,7 +122,7 @@ pub fn expand_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<
     Ok(())
 }
 
-/// 鼠标移出：把展开的窗口缩回边缘。
+/// 鼠标移出：把展开的窗口缩回小方块、贴住边缘。
 #[tauri::command]
 pub fn collapse_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let dock_state = state.dock.lock().unwrap();
@@ -151,27 +133,24 @@ pub fn collapse_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Resul
     if !dock_state.expanded {
         return Ok(());
     }
-    let (saved_x, saved_y) = dock_state.saved_pos.ok_or("no saved position")?;
-    let (saved_w, saved_h) = dock_state.saved_size.ok_or("no saved size")?;
     drop(dock_state);
 
     let win = app.get_webview_window("main").ok_or("main window not found")?;
     let monitor = win.current_monitor().ok().flatten().ok_or("no monitor found")?;
     let work = monitor.work_area();
     let scale = monitor.scale_factor();
-    let peek = (PEEK_LOGICAL * scale).round() as i32;
-    let (x, y) = docked_position(
+    let (dw, dh) = dock_size(scale);
+    let (x, y) = edge_position(
         edge,
-        saved_x,
-        saved_y,
-        saved_w,
-        saved_h,
         work.position.x,
         work.position.y,
         work.size.width,
         work.size.height,
-        peek,
+        dw as i32,
+        dh as i32,
     );
+    win.set_size(PhysicalSize::new(dw, dh))
+        .map_err(|e| e.to_string())?;
     win.set_position(PhysicalPosition::new(x, y))
         .map_err(|e| e.to_string())?;
 
@@ -185,6 +164,10 @@ pub fn collapse_dock(app: tauri::AppHandle, state: State<'_, AppState>) -> Resul
 pub fn undock(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let win = app.get_webview_window("main").ok_or("main window not found")?;
     let mut dock_state = state.dock.lock().unwrap();
+    if let Some((w, h)) = dock_state.saved_size {
+        win.set_size(PhysicalSize::new(w, h))
+            .map_err(|e| e.to_string())?;
+    }
     if let Some((x, y)) = dock_state.saved_pos {
         win.set_position(PhysicalPosition::new(x, y))
             .map_err(|e| e.to_string())?;

@@ -26,13 +26,13 @@ A desktop pet that lives on your screen and reflects your machine's CPU, memory,
 - 宠物状态机：`idle`（闲适）/ `busy`（忙碌）/ `alert`（告警），取最大压力值并带迟滞防抖
 - 透明置顶、可拖拽、托盘显示/隐藏/退出
 - 宠物资源包协议（manifest + idle/busy/alert 动画），为第二期自定义形象预留
-- 边缘停靠：趴在屏幕左/右/上边缘，只露一条边，鼠标悬停时整窗滑出
+- 边缘停靠：趴在屏幕左/右/上边缘，缩成宠物探头的小窗（头露在边缘、指标收起），鼠标悬停时展开完整面板
 
 ### 操作
 
 - **右键**：呼出菜单（停靠到左边/右边/顶部、离开边缘、隐藏窗口、退出）
 - **双击**宠物：快速趴到右边缘 / 脱离边缘
-- **悬停**停靠后露出的边缘：窗口整窗滑出，鼠标移开自动缩回
+- **悬停**停靠的小窗：展开成完整面板（宠物 + 四项指标），鼠标移开缩回探头小窗
 - **拖拽**宠物可移动窗口；托盘图标可显示 / 隐藏 / 退出
 
 ### 运行
@@ -104,13 +104,13 @@ See [`docs/DESIGN.md`](docs/DESIGN.md) for the architecture and roadmap.
 - Pet state machine: `idle` / `busy` / `alert`, driven by the peak pressure value with hysteresis to prevent flapping
 - Transparent, always-on-top, draggable window; tray menu for show/hide and quit
 - Pet resource pack protocol (manifest + idle/busy/alert animations), designed for custom skins in Phase 2
-- Edge docking: perch on the left/right/top edge, revealing only a thin strip; hover to slide the full window out
+- Edge docking: perch on the left/right/top edge as a small "peeking" window (head visible, metrics hidden); hover to expand the full panel
 
 ### Controls
 
 - **Right-click**: open the menu (dock to left/right/top, undock, hide, quit)
 - **Double-click** the pet: quickly dock to the right edge / undock
-- **Hover** the exposed edge while docked: the window slides out and retracts when the mouse leaves
+- **Hover** the docked window: expand into the full panel (pet + 4 metrics), retract back to the peeking window when the mouse leaves
 - **Drag** the pet to move the window; use the tray icon to show / hide / quit
 
 ### Run it
