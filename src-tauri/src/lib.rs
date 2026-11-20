@@ -79,7 +79,15 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState::new())
-        .invoke_handler(tauri::generate_handler![commands::get_stats])
+        .invoke_handler(tauri::generate_handler![
+            commands::get_stats,
+            commands::dock,
+            commands::undock,
+            commands::expand_dock,
+            commands::collapse_dock,
+            commands::is_docked,
+            commands::quit_app
+        ])
         .setup(|app| {
             build_tray(app.handle())?;
             spawn_sampler(app.handle().clone());

@@ -51,16 +51,16 @@ onUnmounted(() => renderer?.dispose?.())
 <style scoped>
 .pet {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 170px;
+  height: 170px;
   margin: 0 auto;
   user-select: none;
 }
 .layer {
   position: absolute;
   inset: 0;
-  width: 200px;
-  height: 200px;
+  width: 170px;
+  height: 170px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.35s ease;
