@@ -46,6 +46,15 @@ if (-not (Test-Path $lld)) {
 Write-Host "Using linker: $lld"
 $env:RUSTFLAGS = "-C linker=$lld"
 
+# Clear the frontend output dir ourselves before building. Vite's emptyDir
+# would otherwise try to remove it from inside node; on some setups that
+# delete is blocked/hooked and the build fails before Rust even starts.
+$dist = Join-Path $root "dist"
+if (Test-Path $dist) {
+  Remove-Item -Recurse -Force $dist -Confirm:$false
+  Write-Host "Cleared prior dist/ output."
+}
+
 Push-Location $root
 try {
   # --no-bundle: embed frontend, skip MSI/NSIS installer tooling.
