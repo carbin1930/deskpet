@@ -1,6 +1,6 @@
 {
-  "id": "cat-default",
-  "name": "默认小猫",
+  "id": "dog-rural-default",
+  "name": "中华田园犬",
   "version": 1,
   "animations": {
     "idle": { "src": "/packs/default/idle.svg", "type": "svg", "loop": true },

@@ -1,24 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <style>
-    .shake { animation: shake .5s ease-in-out infinite; transform-origin: 100px 140px; }
-    .sweat { animation: drip 1.2s ease-in infinite; }
-    .body { animation: breathe 1s ease-in-out infinite; transform-origin: 100px 170px; }
+    .shake { animation: shake .35s ease-in-out infinite; transform-origin: 100px 140px; }
+    .sweat { animation: drip 1s ease-in infinite; }
+    .sweat2 { animation: drip 1s ease-in .4s infinite; }
+    .body { animation: pant 0.5s ease-in-out infinite; transform-origin: 100px 178px; }
+    .dash { animation: dash .6s linear infinite; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-2px)} 75%{transform:translateX(2px)} }
-    @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03,.97)} }
-    @keyframes drip { 0%{transform:translateY(0);opacity:0} 30%{opacity:1} 100%{transform:translateY(22px);opacity:0} }
+    @keyframes pant { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03,.97)} }
+    @keyframes drip { 0%{transform:translateY(0);opacity:0} 30%{opacity:1} 100%{transform:translateY(20px);opacity:0} }
+    @keyframes dash { 0%{opacity:.15} 50%{opacity:.7} 100%{opacity:.15} }
   </style>
   <g class="shake">
+    <g class="dash" fill="#f59e0b">
+      <rect x="20" y="70" width="16" height="3" rx="1.5"/>
+      <rect x="14" y="84" width="12" height="3" rx="1.5"/>
+      <rect x="22" y="98" width="16" height="3" rx="1.5"/>
+    </g>
     <g class="body">
-      <path d="M150 160 Q185 155 178 115 Q175 100 165 105 Q172 120 158 140 Q150 150 145 155Z" fill="#fbbf24"/>
-      <path d="M55 175 Q50 110 100 105 Q150 110 145 175 Q100 190 55 175Z" fill="#fcd34d"/>
-      <path d="M62 90 L60 48 L92 72 Q100 70 108 72 L140 48 L138 90 Q150 110 100 118 Q50 110 62 90Z" fill="#fcd34d"/>
-      <path d="M66 84 L66 58 L86 76Z" fill="#f472b6"/>
-      <path d="M134 84 L134 58 L114 76Z" fill="#f472b6"/>
-      <path d="M70 94 L86 98 M86 94 L70 98" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
-      <path d="M114 98 L130 94 M114 94 L130 98" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
-      <ellipse cx="100" cy="110" rx="9" ry="7" fill="#1e293b"/>
-      <path class="sweat" d="M150 78 Q156 88 150 94 Q144 88 150 78Z" fill="#38bdf8"/>
-      <path class="sweat" style="animation-delay:.5s" d="M158 96 Q163 104 158 109 Q153 104 158 96Z" fill="#38bdf8"/>
+      <path d="M138 152 Q168 148 174 112 Q177 94 167 98 Q171 122 150 142 Z" fill="#c8913f"/>
+      <path d="M62 178 Q58 130 100 128 Q142 130 138 178 Q100 188 62 178Z" fill="#d9a54a"/>
+      <path d="M100 132 Q118 134 116 178 Q100 182 84 178 Q82 134 100 132Z" fill="#f7e9c9"/>
+      <ellipse cx="82" cy="177" rx="13" ry="9" fill="#f7e9c9"/>
+      <ellipse cx="118" cy="177" rx="13" ry="9" fill="#f7e9c9"/>
+      <ellipse cx="100" cy="88" rx="45" ry="42" fill="#d9a54a"/>
+      <path d="M62 62 L50 18 Q72 32 86 52 Z" fill="#b8862f"/>
+      <path d="M138 62 L150 18 Q128 32 114 52 Z" fill="#b8862f"/>
+      <ellipse cx="100" cy="104" rx="30" ry="24" fill="#f7e9c9"/>
+      <path d="M72 84 Q80 78 88 84" fill="none" stroke="#3a2a1a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M112 84 Q120 78 128 84" fill="none" stroke="#3a2a1a" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="100" cy="96" rx="9" ry="6.5" fill="#3a2a1a"/>
+      <path d="M100 102 L100 107 M100 107 Q88 115 80 107 M100 107 Q112 115 120 107" fill="none" stroke="#3a2a1a" stroke-width="2.4" stroke-linecap="round"/>
+      <ellipse cx="100" cy="118" rx="7" ry="11" fill="#e8899a"/>
+      <path class="sweat" d="M152 58 Q158 68 152 74 Q146 68 152 58Z" fill="#38bdf8"/>
+      <path class="sweat2" d="M160 80 Q165 88 160 93 Q155 88 160 80Z" fill="#38bdf8"/>
     </g>
   </g>
 </svg>

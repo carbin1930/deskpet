@@ -97,7 +97,11 @@ impl Monitor {
             let total = d.total_space();
             (total.saturating_sub(d.available_space()), total)
         };
-        if let Some(d) = self.disks.iter().find(|d| d.mount_point().to_string_lossy() == root) {
+        if let Some(d) = self
+            .disks
+            .iter()
+            .find(|d| d.mount_point().to_string_lossy() == root)
+        {
             pick(d)
         } else {
             // 找不到主盘时退回第一个非空磁盘

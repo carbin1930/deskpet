@@ -2,23 +2,36 @@
   <style>
     .flash { animation: flash .8s ease-in-out infinite; }
     .tremble { animation: tremble .18s linear infinite; transform-origin: 100px 140px; }
-    .body { animation: breathe .6s ease-in-out infinite; transform-origin: 100px 170px; }
-    @keyframes flash { 0%,100%{opacity:.35} 50%{opacity:.9} }
+    .body { animation: breathe .6s ease-in-out infinite; transform-origin: 100px 178px; }
+    .tail { animation: wag .35s ease-in-out infinite; transform-origin: 140px 152px; }
+    @keyframes flash { 0%,100%{opacity:.3} 50%{opacity:.85} }
     @keyframes tremble { 0%{transform:translate(0,0)} 25%{transform:translate(-3px,1px)} 50%{transform:translate(3px,-1px)} 75%{transform:translate(-2px,-2px)} }
-    @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04,.96)} }
+    @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04,.97)} }
+    @keyframes wag { 0%,100%{transform:rotate(-22deg)} 50%{transform:rotate(22deg)} }
   </style>
   <g class="tremble">
-    <ellipse class="flash" cx="100" cy="135" rx="82" ry="72" fill="#ef4444"/>
+    <ellipse class="flash" cx="100" cy="132" rx="86" ry="76" fill="#ef4444"/>
     <g class="body">
-      <path d="M150 160 Q185 155 178 115 Q175 100 165 105 Q172 120 158 140 Q150 150 145 155Z" fill="#f87171"/>
-      <path d="M55 175 Q50 110 100 105 Q150 110 145 175 Q100 190 55 175Z" fill="#fca5a5"/>
-      <path d="M62 90 L60 48 L92 72 Q100 70 108 72 L140 48 L138 90 Q150 110 100 118 Q50 110 62 90Z" fill="#fca5a5"/>
-      <path d="M66 84 L66 58 L86 76Z" fill="#f9a8d4"/>
-      <path d="M134 84 L134 58 L114 76Z" fill="#f9a8d4"/>
-      <path d="M70 92 L86 97 M86 92 L70 97" stroke="#450a0a" stroke-width="3.5" stroke-linecap="round"/>
-      <path d="M114 97 L130 92 M114 92 L130 97" stroke="#450a0a" stroke-width="3.5" stroke-linecap="round"/>
-      <path d="M88 114 Q100 104 112 114" fill="none" stroke="#450a0a" stroke-width="3" stroke-linecap="round"/>
-      <path d="M100 108 L100 120 M94 114 L106 114" stroke="#450a0a" stroke-width="2" stroke-linecap="round"/>
+      <path class="tail" d="M138 152 Q168 148 174 112 Q177 94 167 98 Q171 122 150 142 Z" fill="#b8862f"/>
+      <path d="M62 178 Q58 130 100 128 Q142 130 138 178 Q100 188 62 178Z" fill="#d9a54a"/>
+      <path d="M100 132 Q118 134 116 178 Q100 182 84 178 Q82 134 100 132Z" fill="#f7e9c9"/>
+      <ellipse cx="82" cy="177" rx="13" ry="9" fill="#f7e9c9"/>
+      <ellipse cx="118" cy="177" rx="13" ry="9" fill="#f7e9c9"/>
+      <ellipse cx="100" cy="88" rx="45" ry="42" fill="#d9a54a"/>
+      <path d="M62 60 L46 12 Q70 30 86 50 Z" fill="#b8862f"/>
+      <path d="M138 60 L154 12 Q130 30 114 50 Z" fill="#b8862f"/>
+      <path d="M64 54 L52 22 Q70 36 82 50 Z" fill="#e8a878"/>
+      <path d="M136 54 L148 22 Q130 36 118 50 Z" fill="#e8a878"/>
+      <ellipse cx="100" cy="104" rx="30" ry="24" fill="#f7e9c9"/>
+      <path d="M70 76 L88 82" stroke="#3a2a1a" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M130 76 L112 82" stroke="#3a2a1a" stroke-width="3.5" stroke-linecap="round"/>
+      <ellipse cx="80" cy="87" rx="5.5" ry="7" fill="#3a2a1a"/>
+      <ellipse cx="120" cy="87" rx="5.5" ry="7" fill="#3a2a1a"/>
+      <circle cx="81.5" cy="85" r="1.6" fill="#fff"/>
+      <circle cx="121.5" cy="85" r="1.6" fill="#fff"/>
+      <ellipse cx="100" cy="97" rx="9" ry="6.5" fill="#3a2a1a"/>
+      <path d="M100 103 L100 108 Q84 122 76 108 Q84 116 92 110 L100 114 L108 110 Q116 116 124 108 Q116 122 100 108Z" fill="#7f1d1d" stroke="#3a2a1a" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M80 109 L85 115 L88 109 M112 109 L115 115 L120 109" fill="#fff"/>
     </g>
   </g>
 </svg>
