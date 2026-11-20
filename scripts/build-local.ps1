@@ -13,7 +13,10 @@
 # On a healthy machine with VS Build Tools, simply run: npm run tauri build
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\build-local.ps1
-$ErrorActionPreference = "Stop"
+# Continue (not Stop): tauri CLI writes normal Info/Warn lines to stderr, which
+# PowerShell 5.1 treats as NativeCommandError under Stop and aborts the build.
+# Real failures are still caught by the explicit $LASTEXITCODE checks + throw.
+$ErrorActionPreference = "Continue"
 
 $root = Split-Path -Parent $PSScriptRoot
 $tools = Join-Path $root ".tools"

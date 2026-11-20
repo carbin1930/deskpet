@@ -53,13 +53,15 @@ npm run tauri -- build --no-bundle  # 生成独立 exe，跳过安装包
 **本机一键脚本（无 VS Build Tools 时）**：仓库在 `.tools/` 附带了 GNU 工具链，但它是 gitignore 的、且不会自动进 PATH。若直接跑 `cargo check` / `tauri dev` 报 `dlltool.exe: program not found`，用这两个脚本即可（自动配 PATH + linker，并规避 Defender 锁文件）：
 
 ```bash
-# 开发运行：热更新 + 弹出宠物窗口（Ctrl+C 退出）
+# 一键构建并运行：增量编译出 exe 后直接弹出宠物窗口（托盘图标可退出）
 powershell -ExecutionPolicy Bypass -File scripts\dev-local.ps1
 
-# 生成独立 exe
+# 仅生成独立 exe，不运行
 powershell -ExecutionPolicy Bypass -File scripts\build-local.ps1
 ```
 
+> `dev-local.ps1` 内部复用 `build-local.ps1` 的工具链配置（PATH + linker），并强制单线程编译、带重试，规避本机 GNU 工具链的 dlltool / dll_imports.lib / Defender 锁文件等坑。首次全量编译较慢，之后走缓存很快。
+>
 > `.tools/` 为本地工具链，换电脑后需重新准备（见 `scripts/build-local.ps1` 顶部注释）。有 VS Build Tools 的机器可忽略这些脚本，直接用标准命令。
 
 仅验证前端：
@@ -129,13 +131,15 @@ The exe lands at `src-tauri/target/release/deskpet.exe`.
 **One-click scripts for this machine (no VS Build Tools)**: the repo ships a GNU toolchain in `.tools/`, but it is gitignored and not auto-added to PATH. If a plain `cargo check` / `tauri dev` fails with `dlltool.exe: program not found`, use these scripts (they set PATH + linker and work around Defender file locks):
 
 ```bash
-# Dev run: hot reload + pet window (Ctrl+C to stop)
+# One-click build + run: incrementally builds the exe, then launches the pet window
 powershell -ExecutionPolicy Bypass -File scripts\dev-local.ps1
 
-# Build standalone exe
+# Build standalone exe only (no launch)
 powershell -ExecutionPolicy Bypass -File scripts\build-local.ps1
 ```
 
+> `dev-local.ps1` reuses the toolchain setup in `build-local.ps1` (PATH + linker), forces single-threaded compilation and adds retries to work around this box's GNU-toolchain quirks (dlltool / dll_imports.lib / Defender file locks). The first full build is slow; later runs hit the cache and are fast.
+>
 > `.tools/` is a local toolchain; it must be re-prepared on a new machine (see the header of `scripts/build-local.ps1`). Machines with VS Build Tools can ignore these scripts and use the standard commands.
 
 Frontend-only validation:
