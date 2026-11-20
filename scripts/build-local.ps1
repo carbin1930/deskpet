@@ -1,12 +1,16 @@
-# Local build helper.
+# Local build helper (for this machine, which lacks a C linker).
 #
-# Two paths:
-#   1. Healthy machine (VS Build Tools / MinGW installed): just run
-#        npm run tauri build
-#      You do NOT need this script.
-#   2. This dev machine lacks a C linker. This script wires up Rust's bundled
-#      lld as the linker and uses the locally fetched MSYS2 binutils in .tools/
-#      (dlltool / as / ld / windres + a tiny gcc shim for RC preprocessing).
+# Produces a SELF-CONTAINED release exe at src-tauri/target/release/deskpet.exe
+# with the Vue frontend embedded. It uses:
+#   - Rust's bundled lld as linker
+#   - locally fetched MSYS2 binutils in .tools/ (dlltool/as/ld/windres)
+#   - a tiny gcc shim in .tools/ for windres RC preprocessing
+#
+# NOTE: `cargo build --release` alone does NOT embed the frontend (white screen).
+#       You MUST use `tauri build` so build.frontendDist (dist/) is compiled in.
+#       Add --no-bundle to skip MSI/NSIS installer generation.
+#
+# On a healthy machine with VS Build Tools, simply run: npm run tauri build
 #
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\build-local.ps1
 $ErrorActionPreference = "Stop"
@@ -31,11 +35,12 @@ if (-not (Test-Path $lld)) {
 Write-Host "Using linker: $lld"
 $env:RUSTFLAGS = "-C linker=$lld"
 
-Push-Location (Join-Path $root "src-tauri")
+Push-Location $root
 try {
-  cargo build -j 1
-  if ($LASTEXITCODE -ne 0) { throw "cargo build failed" }
-  Write-Host "Build OK. Binary: src-tauri/target/debug/deskpet.exe"
+  # --no-bundle: embed frontend, skip MSI/NSIS installer tooling
+  npm run tauri -- build --no-bundle
+  if ($LASTEXITCODE -ne 0) { throw "tauri build failed" }
+  Write-Host "Build OK. Self-contained exe: src-tauri/target/release/deskpet.exe"
 } finally {
   Pop-Location
 }

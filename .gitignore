@@ -23,3 +23,6 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# Packaged exe output (local delivery)
+dist-exe/
