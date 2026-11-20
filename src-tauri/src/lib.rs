@@ -19,7 +19,8 @@ fn spawn_sampler(app: AppHandle) {
             .load(std::sync::atomic::Ordering::Relaxed);
 
         let snapshot = {
-            let mut monitor = app.state::<AppState>().monitor.lock().unwrap();
+            let state = app.state::<AppState>();
+            let mut monitor = state.monitor.lock().unwrap();
             monitor.sample()
         };
 
@@ -29,8 +30,8 @@ fn spawn_sampler(app: AppHandle) {
 }
 
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
-    let show = MenuItem::new(app, "show", "显示/隐藏", true, None::<&str>)?;
-    let quit = MenuItem::new(app, "quit", "退出", true, None::<&str>)?;
+    let show = MenuItem::with_id(app, "show", "显示/隐藏", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
     let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
 
     let icon = app

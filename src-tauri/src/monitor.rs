@@ -118,7 +118,7 @@ impl Monitor {
         let mut rx = 0u64;
         let mut tx = 0u64;
         for (name, data) in self.networks.iter() {
-            let n = name.to_string_lossy().to_lowercase();
+            let n = name.to_lowercase();
             if n.contains("loopback") || n == "lo" || n.starts_with("lo0") {
                 continue;
             }

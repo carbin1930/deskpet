@@ -13,6 +13,10 @@ src-tauri/gen/
 # WorkBuddy project data
 .workbuddy/
 
+# Local build toolchain (MSYS2 binutils fetched on this machine)
+.tools/
+build.log
+
 # OS / editor
 .DS_Store
 Thumbs.db
